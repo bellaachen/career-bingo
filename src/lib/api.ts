@@ -1,5 +1,4 @@
-import type { RoleId } from '../types'
-import type { RoleStats, ShareCard, ShareRequest } from './share'
+import type { RoleStats, ShareCard, ShareRequest, WallScope } from './share'
 
 /**
  * API base URL is injected at build time (VITE_API_BASE). When it's missing, every
@@ -37,14 +36,10 @@ export function postShare(req: ShareRequest) {
   return call<{ id: string; position: number; stats: RoleStats }>('/api/shares', { method: 'POST', body: JSON.stringify(req) })
 }
 
-export function getStats(role: RoleId) {
-  return call<RoleStats>(`/api/stats?role=${role}`)
+export function getStats(scope: WallScope) {
+  return call<RoleStats>(`/api/stats?role=${scope}`)
 }
 
-export function getWall(role: RoleId) {
-  return call<{ role: RoleId; cards: ShareCard[] }>(`/api/shares?role=${role}`)
-}
-
-export function postReport(id: string, clientId: string) {
-  return call<{ ok: boolean; hidden: boolean }>(`/api/shares/${encodeURIComponent(id)}/report`, { method: 'POST', body: JSON.stringify({ clientId }) })
+export function getWall(scope: WallScope) {
+  return call<{ role: WallScope; cards: ShareCard[] }>(`/api/shares?role=${scope}`)
 }

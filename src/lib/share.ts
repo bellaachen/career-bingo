@@ -9,7 +9,6 @@ export const ROLE_MIN_SHARES = 20
 export const PROMPT_MIN_APPEARANCES = 10
 export const DAILY_LIMIT_PER_CLIENT = 10
 export const DAILY_LIMIT_PER_IP = 30
-export const REPORTS_TO_HIDE = 3
 export const WALL_SIZE = 30
 
 export interface ShareRequest {
@@ -26,8 +25,11 @@ export interface PromptStat {
   hits: number
 }
 
+/** The wall can show one role or every role together ("全部"). Not a role: 'all' is the Everyone-in-Tech role. */
+export type WallScope = RoleId | 'everyone'
+
 export interface RoleStats {
-  role: RoleId
+  role: WallScope
   shares: number
   avgLines: number
   totalShares: number
@@ -36,6 +38,7 @@ export interface RoleStats {
 
 export interface ShareCard {
   id: string
+  role: RoleId
   nickname: string | null
   lines: number
   markedCount: number

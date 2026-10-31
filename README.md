@@ -116,7 +116,7 @@ Manual (verified in Chrome at 375px and 1280px):
 Players can share a finished card anonymously and immediately see what share of players in the same role hit each square. Everything runs on free tiers with no manual moderation.
 
 - **API**: a Cloudflare Worker (`worker/src/index.ts`) with a D1 database (`worker/migrations`). It shares the question bank and bingo logic with the frontend (`src/lib/share.ts`, `src/lib/nickname.ts`), so validation and line counting are identical on both sides — and the server always recomputes lines rather than trusting the client.
-- **Nicknames**: optional, max 14 width units (CJK/emoji = 2). Links, `@`, long numbers and a server-only blocklist are rejected; 3 reports from different players hide a nickname automatically.
+- **Nicknames**: optional, max 14 width units (CJK/emoji = 2). Links, `@`, long numbers and a server-only blocklist are rejected.
 - **Abuse limits**: one share per board per player, 10 shares/day per anonymous player, 30/day per IP (hashed, never stored raw).
 - **Cold start**: percentages appear only after 20 shares for a role and 10 appearances for a square.
 - **Stats** are kept as running aggregates (`role_stats`, `prompt_stats`), so reading them touches ~30 rows, not every share.

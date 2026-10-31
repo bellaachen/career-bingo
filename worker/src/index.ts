@@ -1,8 +1,8 @@
 import { completedLines, markedCells } from '../../src/lib/bingo'
 import { isRoleId } from '../../src/data/roles'
 import {
-  DAILY_LIMIT_PER_CLIENT, DAILY_LIMIT_PER_IP, REPORTS_TO_HIDE, WALL_SIZE, validateShare,
-  type ApiErrorCode, type RoleStats, type ShareCard,
+  DAILY_LIMIT_PER_CLIENT, DAILY_LIMIT_PER_IP, WALL_SIZE, validateShare,
+  type ApiErrorCode, type RoleStats, type ShareCard, type WallScope,
 } from '../../src/lib/share'
 import type { RoleId } from '../../src/types'
 import { BLOCKLIST } from './blocklist'
@@ -33,7 +33,6 @@ export default {
       else if (path === '/api/shares' && request.method === 'POST') res = await createShare(request, env)
       else if (path === '/api/shares' && request.method === 'GET') res = await listShares(url, env)
       else if (path === '/api/stats' && request.method === 'GET') res = await getStatsRoute(url, env)
-      else if (/^\/api\/shares\/[\w-]+\/report$/.test(path) && request.method === 'POST') res = await reportShare(path.split('/')[3], request, env)
       else res = error('not_found', 404)
       return withHeaders(res, cors)
     } catch (err) {
@@ -100,25 +99,33 @@ async function createShare(request: Request, env: Env): Promise<Response> {
   return json({ id, position: stats.shares, stats }, 201)
 }
 
-async function getStatsRoute(url: URL, env: Env): Promise<Response> {
+/** ?role= one role ID, or 'everyone' for all roles combined. */
+function parseScope(url: URL): WallScope | null {
   const role = url.searchParams.get('role')
-  if (!isRoleId(role)) return error('invalid_request', 400)
+  return role === 'everyone' || isRoleId(role) ? (role as WallScope) : null
+}
+
+async function getStatsRoute(url: URL, env: Env): Promise<Response> {
+  const role = parseScope(url)
+  if (!role) return error('invalid_request', 400)
   return json(await readStats(env, role), 200, { 'Cache-Control': 'public, max-age=60' })
 }
 
 async function listShares(url: URL, env: Env): Promise<Response> {
-  const role = url.searchParams.get('role')
-  if (!isRoleId(role)) return error('invalid_request', 400)
+  const role = parseScope(url)
+  if (!role) return error('invalid_request', 400)
   const limit = Math.min(WALL_SIZE, Math.max(1, Number(url.searchParams.get('limit')) || WALL_SIZE))
-  const { results } = await env.DB.prepare(
-    `SELECT id, board, marked, lines, marked_count, nickname, nickname_hidden, created_at
-     FROM shares WHERE role = ? ORDER BY created_at DESC LIMIT ?`,
-  ).bind(role, limit).all<{ id: string; board: string; marked: string; lines: number; marked_count: number; nickname: string; nickname_hidden: number; created_at: number }>()
+  const cols = 'id, role, board, marked, lines, marked_count, nickname, nickname_hidden, created_at'
+  const stmt = role === 'everyone'
+    ? env.DB.prepare(`SELECT ${cols} FROM shares ORDER BY created_at DESC LIMIT ?`).bind(limit)
+    : env.DB.prepare(`SELECT ${cols} FROM shares WHERE role = ? ORDER BY created_at DESC LIMIT ?`).bind(role, limit)
+  const { results } = await stmt.all<{ id: string; role: RoleId; board: string; marked: string; lines: number; marked_count: number; nickname: string; nickname_hidden: number; created_at: number }>()
 
   const cards: ShareCard[] = results.map((r) => {
     const cells = markedCells(JSON.parse(r.board) as string[], JSON.parse(r.marked) as string[])
     return {
       id: r.id,
+      role: r.role,
       nickname: r.nickname_hidden || !r.nickname ? null : r.nickname,
       lines: completedLines(cells).length,
       markedCount: r.marked_count,
@@ -129,28 +136,17 @@ async function listShares(url: URL, env: Env): Promise<Response> {
   return json({ role, cards }, 200, { 'Cache-Control': 'public, max-age=30' })
 }
 
-async function reportShare(id: string, request: Request, env: Env): Promise<Response> {
-  const body = (await readJson(request)) as { clientId?: unknown } | null
-  if (!body || typeof body.clientId !== 'string' || !/^[a-zA-Z0-9-]{16,64}$/.test(body.clientId)) return error('invalid_request', 400)
-  const exists = await env.DB.prepare('SELECT 1 AS x FROM shares WHERE id = ?').bind(id).first()
-  if (!exists) return error('not_found', 404)
-
-  const clientHash = await sha256(`client:${body.clientId}`)
-  const [, count] = await env.DB.batch<{ n: number }>([
-    env.DB.prepare('INSERT OR IGNORE INTO reports (share_id, client_hash, created_at) VALUES (?, ?, ?)').bind(id, clientHash, Date.now()),
-    env.DB.prepare('SELECT COUNT(*) AS n FROM reports WHERE share_id = ?').bind(id),
-  ])
-  const hidden = (count.results[0]?.n ?? 0) >= REPORTS_TO_HIDE
-  if (hidden) await env.DB.prepare('UPDATE shares SET nickname_hidden = 1 WHERE id = ?').bind(id).run()
-  return json({ ok: true, hidden })
-}
-
 // ---------- helpers ----------
 
-async function readStats(env: Env, role: RoleId): Promise<RoleStats> {
+async function readStats(env: Env, role: WallScope): Promise<RoleStats> {
+  const everyone = role === 'everyone'
   const [roleRow, prompts, total] = await env.DB.batch<Record<string, number | string>>([
-    env.DB.prepare('SELECT shares, lines_sum FROM role_stats WHERE role = ?').bind(role),
-    env.DB.prepare('SELECT prompt_id, appeared, hits FROM prompt_stats WHERE role = ?').bind(role),
+    everyone
+      ? env.DB.prepare('SELECT COALESCE(SUM(shares), 0) AS shares, COALESCE(SUM(lines_sum), 0) AS lines_sum FROM role_stats')
+      : env.DB.prepare('SELECT shares, lines_sum FROM role_stats WHERE role = ?').bind(role),
+    everyone
+      ? env.DB.prepare('SELECT prompt_id, appeared, hits FROM prompt_stats')
+      : env.DB.prepare('SELECT prompt_id, appeared, hits FROM prompt_stats WHERE role = ?').bind(role),
     env.DB.prepare('SELECT COALESCE(SUM(shares), 0) AS n FROM role_stats'),
   ])
   const r = roleRow.results[0] as { shares: number; lines_sum: number } | undefined

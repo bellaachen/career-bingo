@@ -13,7 +13,7 @@ import { ConfirmDialog } from './components/ConfirmDialog'
 import { ShareDialog } from './components/ShareDialog'
 import { Community } from './components/Community'
 import { useShare } from './hooks/useShare'
-import { ROLE_MIN_SHARES } from './lib/share'
+import { ROLE_MIN_SHARES, type WallScope } from './lib/share'
 import { apiEnabled } from './lib/api'
 import type { RoleId } from './types'
 
@@ -21,9 +21,6 @@ type Screen = 'landing' | 'roles' | 'game' | 'community'
 type Pending = 'regenerate' | 'reset' | 'switch' | 'play' | null
 
 const WALL_HASH = '#/wall'
-
-declare const __BUILD_DATE__: string
-const BUILD_DATE = __BUILD_DATE__
 
 export default function App() {
   const game = useGame()
@@ -34,6 +31,7 @@ export default function App() {
   )
   const [playRole, setPlayRole] = useState<RoleId | null>(null)
   const [shareOpen, setShareOpen] = useState(false)
+  const [wallScope, setWallScope] = useState<WallScope>('everyone')
   const share = useShare(state.role, state.board, state.marked, state.lang)
   const [pending, setPending] = useState<Pending>(null)
   // Each toast gets its own id so its dismiss timer is independent of later taps.
@@ -85,7 +83,8 @@ export default function App() {
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [state.role])
-  const openWall = () => {
+  const openWall = (scope: WallScope = 'everyone') => {
+    setWallScope(scope)
     if (window.location.hash !== WALL_HASH) window.location.hash = WALL_HASH
     setScreen('community')
     window.scrollTo({ top: 0 })
@@ -157,12 +156,12 @@ export default function App() {
 
   return (
     <div className="flex min-h-dvh flex-col" style={accentStyle}>
-      <Header lang={state.lang} t={t} onLang={game.setLang} onHome={screen === 'landing' ? undefined : () => go('landing')} onWall={apiEnabled && screen !== 'community' ? openWall : undefined} />
+      <Header lang={state.lang} t={t} onLang={game.setLang} onHome={screen === 'landing' ? undefined : () => go('landing')} onWall={apiEnabled && screen !== 'community' ? () => openWall() : undefined} />
 
       <main className="flex-1">
         {screen === 'landing' && (
           <>
-            <Landing lang={state.lang} t={t} onStart={() => go(state.role ? 'game' : 'roles')} onWall={apiEnabled ? openWall : undefined} />
+            <Landing lang={state.lang} t={t} onStart={() => go(state.role ? 'game' : 'roles')} onWall={apiEnabled ? () => openWall() : undefined} />
             {state.role && (
               <p className="mx-auto -mt-6 w-full max-w-5xl px-4 text-sm text-ink-soft sm:px-6">
                 <button type="button" className="underline underline-offset-4 hover:text-ink" onClick={() => { game.leaveRole(); go('roles') }}>
@@ -201,7 +200,7 @@ export default function App() {
               onReset={() => setPending('reset')}
               onSwitchRole={() => guarded('switch')}
               canReset={game.hasProgress}
-              share={share.enabled ? { shared: Boolean(share.shared), onShare: () => setShareOpen(true), onOpenWall: openWall } : undefined}
+              share={share.enabled ? { shared: Boolean(share.shared), onShare: () => setShareOpen(true), onOpenWall: () => openWall(state.role ?? 'everyone') } : undefined}
             />
           </section>
         )}
@@ -210,8 +209,9 @@ export default function App() {
           <Community
             lang={state.lang}
             t={t}
-            initialRole={state.role ?? 'pm'}
-            onPlay={playFromWall}
+            key={wallScope}
+            initialScope={wallScope}
+            onPlay={(scope) => (scope === 'everyone' ? go(state.role ? 'game' : 'roles') : playFromWall(scope))}
             onBack={state.role ? () => go('game') : undefined}
           />
         )}
@@ -221,7 +221,7 @@ export default function App() {
         <p role="status" className="mx-auto mb-2 max-w-md px-4 text-center text-xs text-ink-soft">{t.storageWarning}</p>
       )}
 
-      <footer className="py-6 text-center text-xs text-ink-soft">Bella Chen {BUILD_DATE}</footer>
+      <div className="h-6" aria-hidden />
 
       <div aria-live="polite" className="pointer-events-none fixed inset-x-0 top-3 z-50 flex justify-center px-4 sm:top-5">
         {toast && (

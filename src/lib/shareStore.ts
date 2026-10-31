@@ -4,7 +4,6 @@
  */
 const CLIENT_KEY = 'career-bingo:client:v1'
 const SHARED_KEY = 'career-bingo:shared:v1'
-const REPORTED_KEY = 'career-bingo:reported:v1'
 
 export interface SharedEntry {
   id: string
@@ -61,14 +60,4 @@ export function setShared(key: string, entry: SharedEntry) {
   // Keep the map small: only the 50 most recent shares matter.
   const trimmed = Object.fromEntries(Object.entries(all).slice(-50))
   writeJson(SHARED_KEY, trimmed)
-}
-
-export function getReported(): Set<string> {
-  return new Set(readJson<string[]>(REPORTED_KEY, []))
-}
-
-export function addReported(id: string) {
-  const s = getReported()
-  s.add(id)
-  writeJson(REPORTED_KEY, [...s].slice(-200))
 }
