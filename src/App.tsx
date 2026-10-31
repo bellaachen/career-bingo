@@ -36,7 +36,8 @@ export default function App() {
   const [shareOpen, setShareOpen] = useState(false)
   const share = useShare(state.role, state.board, state.marked, state.lang)
   const [pending, setPending] = useState<Pending>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  // Each toast gets its own id so its dismiss timer is independent of later taps.
+  const [toast, setToast] = useState<{ id: number; text: string; count: number } | null>(null)
   const [celebrate, setCelebrate] = useState<number[]>([])
   const [exportState, setExportState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle')
   const boardRef = useRef<HTMLDivElement>(null)
@@ -51,10 +52,25 @@ export default function App() {
     prevBoard.current = state.board
     if (fresh.length === 0) return
     setCelebrate(fresh)
-    setToast(lines.length === 12 ? t.blackout : fresh.length === 1 ? t.bingoOne : t.bingoMany(fresh.length))
+    setToast({
+      id: Date.now(),
+      text: lines.length === 12 ? t.blackout : fresh.length === 1 ? t.bingoOne : t.bingoMany(fresh.length),
+      count: lines.length,
+    })
+  }, [lines, state.board, t])
+
+  // Dismiss timer lives with the toast itself. Previously it was cleared by the next tap
+  // (any marks change re-ran the effect above), which left the toast on screen forever.
+  useEffect(() => {
+    if (!toast) return
     const id = window.setTimeout(() => { setToast(null); setCelebrate([]) }, 2400)
     return () => window.clearTimeout(id)
-  }, [lines, state.board, t])
+  }, [toast])
+
+  // Leaving the game clears any celebration so it can't follow you to another page.
+  useEffect(() => {
+    if (screen !== 'game') { setToast(null); setCelebrate([]) }
+  }, [screen])
 
   useEffect(() => {
     document.documentElement.lang = state.lang
@@ -210,14 +226,14 @@ export default function App() {
       <div aria-live="polite" className="pointer-events-none fixed inset-x-0 top-3 z-50 flex justify-center px-4 sm:top-5">
         {toast && (
           <div
-            key={toast + lines.length}
+            key={toast.id}
             className="anim-toast flex items-center gap-3 rounded-full py-2.5 pl-2.5 pr-6 text-white shadow-[0_12px_32px_-10px_rgba(47,43,40,0.55)] ring-4 ring-white/70"
             style={{ background: 'var(--accent)' }}
           >
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/95 font-display text-lg font-extrabold tabular-nums" style={{ color: 'var(--accent)' }}>
-              {lines.length}
+              {toast.count}
             </span>
-            <span className="text-base font-bold sm:text-lg">{toast}</span>
+            <span className="text-base font-bold sm:text-lg">{toast.text}</span>
           </div>
         )}
       </div>
