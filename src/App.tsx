@@ -48,23 +48,16 @@ export default function App() {
   useEffect(() => {
     const sameBoard = prevBoard.current === state.board
     const fresh = sameBoard ? newlyCompleted(prevLines.current, lines) : []
-    const prevCount = prevLines.current.length
     prevLines.current = lines
     prevBoard.current = state.board
     if (fresh.length === 0) return
     setCelebrate(fresh)
-    const before = getSurvivalLevel(prevCount)
-    const now = getSurvivalLevel(lines.length)
-    // A level-up outranks the plain bingo message (full card still gets its own line).
-    const levelUp = now > before && state.role
-      ? t.levelUp(getSurvivalCopy(state.role, now).title[state.lang])
-      : null
     setToast({
       id: Date.now(),
-      text: levelUp ?? (lines.length === 12 ? t.blackout : fresh.length === 1 ? t.bingoOne : t.bingoMany(fresh.length)),
-      badge: levelUp ? `LV${now}` : `${lines.length}`,
+      text: lines.length === 12 ? t.blackout : fresh.length === 1 ? t.bingoOne : t.bingoMany(fresh.length),
+      badge: `${lines.length}`,
     })
-  }, [lines, state.board, state.role, state.lang, t])
+  }, [lines, state.board, t])
 
   // Dismiss timer lives with the toast itself. Previously it was cleared by the next tap
   // (any marks change re-ran the effect above), which left the toast on screen forever.
