@@ -53,20 +53,41 @@ jobs:
       - name: Find or create the D1 database
         if: steps.check.outputs.enabled == 'true'
         run: |
-          find_id() { npx wrangler d1 list --json | jq -r '.[] | select(.name=="career-bingo") | (.uuid // .id)' | head -1; }
-          ID=$(find_id)
-          if [ -z "$ID" ]; then npx wrangler d1 create career-bingo; ID=$(find_id); fi
+          # Surface wrangler's own error text as a run annotation when a command fails.
+          run() {
+            OUT=$("$@" 2>&1); RC=$?
+            if [ $RC -ne 0 ]; then
+              MSG=$(printf '%s' "$OUT" | sed 's/\x1b\[[0-9;]*m//g' | grep -vE '^\s*$|npm notice|Logs were written' | tail -8 | tr '\n' ' ')
+              echo "::error title=$2 $3 $4 failed::$MSG" >> /tmp/wrangler-errors.txt; echo "$OUT" >&2; return 1
+            fi
+            printf '%s' "$OUT"
+          }
+          find_id() {
+            run npx wrangler d1 list --json | node -e '
+              let s = require("fs").readFileSync(0, "utf8"); s = s.slice(s.indexOf("["));
+              const db = JSON.parse(s).find((d) => d.name === "career-bingo");
+              process.stdout.write(db ? (db.uuid || db.id || "") : "")'
+          }
+          fail() { cat /tmp/wrangler-errors.txt 2>/dev/null; echo "::error::$1"; exit 1; }
+          ID=$(find_id) || fail "Listing D1 databases failed"
+          if [ -z "$ID" ]; then
+            run npx wrangler d1 create career-bingo >/dev/null || fail "Creating the D1 database failed"
+            ID=$(find_id) || fail "Listing D1 databases failed"
+          fi
           test -n "$ID" || { echo "::error::Could not find or create D1 database"; exit 1; }
           sed -i "s/00000000-0000-0000-0000-000000000000/$ID/" wrangler.toml
           echo "Using D1 database $ID"
       - name: Apply migrations
         if: steps.check.outputs.enabled == 'true'
-        run: npx wrangler d1 migrations apply career-bingo --remote
+        run: |
+          OUT=$(npx wrangler d1 migrations apply career-bingo --remote 2>&1); RC=$?; echo "$OUT"
+          if [ $RC -ne 0 ]; then echo "::error title=migrations failed::$(printf '%s' "$OUT" | sed 's/\x1b\[[0-9;]*m//g' | grep -vE '^\s*$' | tail -8 | tr '\n' ' ')"; exit 1; fi
       - name: Deploy Worker
         id: deploy
         if: steps.check.outputs.enabled == 'true'
         run: |
-          npx wrangler deploy | tee deploy.log
+          OUT=$(npx wrangler deploy 2>&1); RC=$?; echo "$OUT" | tee deploy.log
+          if [ $RC -ne 0 ]; then echo "::error title=wrangler deploy failed::$(printf '%s' "$OUT" | sed 's/\x1b\[[0-9;]*m//g' | grep -vE '^\s*$' | tail -8 | tr '\n' ' ')"; exit 1; fi
           URL=$(grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' deploy.log | head -1)
           test -n "$URL" || { echo "::error::No workers.dev URL in deploy output"; exit 1; }
           echo "url=$URL" >> "$GITHUB_OUTPUT"
