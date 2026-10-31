@@ -7,6 +7,7 @@ import { FREE_INDEX } from '../lib/bingo'
 import { ROLE_MIN_SHARES, topPrompts, type RoleStats, type ShareCard, type WallScope } from '../lib/share'
 import { getStats, getWall } from '../lib/api'
 import { getSurvivalCopy, getSurvivalLevel } from '../data/levels'
+import { CardViewer } from './CardViewer'
 
 interface Props {
   lang: Lang
@@ -24,6 +25,7 @@ const EVERYONE = { tint: '#EEECE6', accent: '#2F2B28' }
 
 export function Community({ lang, t, initialScope, onPlay, onBack }: Props) {
   const [scope, setScope] = useState<WallScope>(initialScope)
+  const [viewing, setViewing] = useState<number | null>(null)
   const [load, setLoad] = useState<Load>({ state: 'loading' })
   const look = scope === 'everyone' ? EVERYONE : getRole(scope)
 
@@ -38,7 +40,7 @@ export function Community({ lang, t, initialScope, onPlay, onBack }: Props) {
     }
   }, [])
 
-  useEffect(() => fetchScope(scope), [scope, fetchScope])
+  useEffect(() => { setViewing(null); return fetchScope(scope) }, [scope, fetchScope])
 
   const total = load.state === 'ok' ? load.stats.totalShares : null
   const tabs: { id: WallScope; label: string; emoji?: string; accent: string }[] = [
@@ -107,11 +109,12 @@ export function Community({ lang, t, initialScope, onPlay, onBack }: Props) {
             <p className="mt-3 rounded-2xl border border-dashed border-line bg-white/60 p-6 text-center text-ink-soft">{t.emptyWall}</p>
           ) : (
             <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {load.cards.map((c) => (
-                <MiniCard key={c.id} card={c} lang={lang} t={t} showRole={scope === 'everyone'} />
+              {load.cards.map((c, i) => (
+                <MiniCard key={c.id} card={c} lang={lang} t={t} showRole={scope === 'everyone'} onOpen={c.board?.length ? () => setViewing(i) : undefined} />
               ))}
             </ul>
           )}
+          <CardViewer lang={lang} t={t} cards={load.cards} index={viewing} onIndex={setViewing} />
         </>
       )}
     </section>
@@ -180,12 +183,20 @@ function Figure({ label, value, accent }: { label: string; value: string; accent
   )
 }
 
-function MiniCard({ card, lang, t, showRole }: { card: ShareCard; lang: Lang; t: Strings; showRole: boolean }) {
+function MiniCard({ card, lang, t, showRole, onOpen }: { card: ShareCard; lang: Lang; t: Strings; showRole: boolean; onOpen?: () => void }) {
   const role = getRole(card.role)
   const level = getSurvivalLevel(card.lines)
   const title = getSurvivalCopy(card.role, level).title[lang]
   return (
-    <li className="rounded-2xl border border-white/80 p-3 shadow-[0_4px_14px_-10px_rgba(47,43,40,0.4)]" style={{ background: role.tint }}>
+    <li>
+      <button
+        type="button"
+        onClick={onOpen}
+        disabled={!onOpen}
+        aria-label={t.viewCard(card.nickname ?? t.anonymous)}
+        className="block h-full w-full rounded-2xl border border-white/80 p-3 text-left shadow-[0_4px_14px_-10px_rgba(47,43,40,0.4)] transition-transform enabled:hover:-translate-y-0.5 enabled:hover:shadow-[0_10px_24px_-12px_rgba(47,43,40,0.45)] disabled:cursor-default"
+        style={{ background: role.tint }}
+      >
       <div className="grid grid-cols-5 gap-[3px]" aria-hidden>
         {card.cells.map((on, i) => (
           <span
@@ -207,6 +218,7 @@ function MiniCard({ card, lang, t, showRole }: { card: ShareCard; lang: Lang; t:
         {' · '}
         <time dateTime={new Date(card.createdAt).toISOString()}>{relativeTime(card.createdAt, lang)}</time>
       </p>
+      </button>
     </li>
   )
 }

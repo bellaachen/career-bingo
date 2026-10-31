@@ -122,10 +122,12 @@ async function listShares(url: URL, env: Env): Promise<Response> {
   const { results } = await stmt.all<{ id: string; role: RoleId; board: string; marked: string; lines: number; marked_count: number; nickname: string; nickname_hidden: number; created_at: number }>()
 
   const cards: ShareCard[] = results.map((r) => {
-    const cells = markedCells(JSON.parse(r.board) as string[], JSON.parse(r.marked) as string[])
+    const board = JSON.parse(r.board) as string[]
+    const cells = markedCells(board, JSON.parse(r.marked) as string[])
     return {
       id: r.id,
       role: r.role,
+      board,
       nickname: r.nickname_hidden || !r.nickname ? null : r.nickname,
       lines: completedLines(cells).length,
       markedCount: r.marked_count,

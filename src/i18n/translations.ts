@@ -94,6 +94,10 @@ const zh = {
   levelUp: (title: string) => `升級！${title}`,
   levelChip: (lv: number, title: string) => `LV${lv} · ${title}`,
   levelOf: (lv: number) => `第 ${lv} 級，共 6 級`,
+  viewCard: (name: string) => `查看 ${name} 的卡`,
+  prevCard: '上一張',
+  nextCard: '下一張',
+  close: '關閉',
   confirmPlayAgainTitle: '再玩一次？',
   confirmPlayAgainBody: '會換一張新卡，目前的勾選會消失。',
 }
@@ -187,6 +191,10 @@ const en: typeof zh = {
   levelUp: (title: string) => `Level up! ${title}`,
   levelChip: (lv: number, title: string) => `LV${lv} · ${title}`,
   levelOf: (lv: number) => `Level ${lv} of 6`,
+  viewCard: (name: string) => `View ${name}'s card`,
+  prevCard: 'Previous',
+  nextCard: 'Next',
+  close: 'Close',
   confirmPlayAgainTitle: 'Play again?',
   confirmPlayAgainBody: 'You will get a new card and lose your current marks.',
 }

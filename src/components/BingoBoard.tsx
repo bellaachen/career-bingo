@@ -20,7 +20,8 @@ interface Props {
   stats?: RoleStats | null
   /** One-line note under the grid (stats legend or cold-start message) */
   note?: string | null
-  onToggle: (id: string) => void
+  onToggle?: (id: string) => void
+  readOnly?: boolean
   /** Opens the result sheet (level chip). Omitted in contexts without one. */
   onOpenResult?: () => void
 }
@@ -30,7 +31,7 @@ interface Props {
  * line count, language) lives inside this node.
  */
 export const BingoBoard = forwardRef<HTMLDivElement, Props>(function BingoBoard(
-  { lang, t, role, board, cells, lines, count, celebrateLines, stats, note, onToggle, onOpenResult },
+  { lang, t, role, board, cells, lines, count, celebrateLines, stats, note, onToggle, onOpenResult, readOnly },
   ref,
 ) {
   const glowing = new Set(celebrateLines.flatMap((l) => LINES[l]))
@@ -54,7 +55,8 @@ export const BingoBoard = forwardRef<HTMLDivElement, Props>(function BingoBoard(
           <button
             type="button"
             onClick={onOpenResult}
-            className="mt-[1.4cqw] inline-flex max-w-full items-center gap-[1cqw] rounded-full px-[2.2cqw] py-[0.7cqw] text-[clamp(10px,2.2cqw,13px)] font-bold text-white transition-transform hover:-translate-y-px"
+            disabled={!onOpenResult}
+            className="mt-[1.4cqw] inline-flex max-w-full items-center gap-[1cqw] rounded-full px-[2.2cqw] py-[0.7cqw] text-[clamp(10px,2.2cqw,13px)] font-bold text-white transition-transform enabled:hover:-translate-y-px disabled:cursor-default"
             style={{ background: role.accent }}
           >
             <span aria-hidden>🏆</span>
@@ -87,7 +89,8 @@ export const BingoBoard = forwardRef<HTMLDivElement, Props>(function BingoBoard(
               celebrate={glowing.has(i)}
               stateLabel={cells[i] ? t.tileMarked : t.tileUnmarked}
               rate={hitRate(stats ?? null, id)}
-              onToggle={() => onToggle(id)}
+              onToggle={() => onToggle?.(id)}
+              readOnly={readOnly}
             />
           )
         })}

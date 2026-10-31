@@ -46,7 +46,7 @@ const bank: Record<RoleId, Row[]> = {
     ['pm-030', 'Drew the same flowchart for the third time', '同一張流程圖畫了第三遍'],
     ['pm-031', 'Spec lived in a chat thread', '規格寫在聊天室的對話串裡'],
     ['pm-032', '"Can we do it without engineering?"', '「可以不用工程師就做出來嗎？」'],
-    ['pm-033', 'Cut scope, keep the date and the quality', '範圍要砍，但時程品質都不變'],
+    ['pm-033', 'Larger scope, keep the date and the quality', '範圍要增加，但時程品質都不變'],
     ['pm-034', 'A/B test result: inconclusive', 'A/B 測試結果：不顯著'],
     ['pm-035', 'Asked for the ROI of a typo fix', '修個錯字也被問 ROI'],
     ['pm-036', 'Same roadmap slide, third quarter in a row', '同一頁 Roadmap 簡報用了三季'],

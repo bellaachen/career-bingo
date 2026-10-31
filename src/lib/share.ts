@@ -39,6 +39,8 @@ export interface RoleStats {
 export interface ShareCard {
   id: string
   role: RoleId
+  /** The 24 prompt IDs in board order (lets the wall open the full card) */
+  board: string[]
   nickname: string | null
   lines: number
   markedCount: number

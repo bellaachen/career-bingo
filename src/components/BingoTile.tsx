@@ -43,9 +43,11 @@ interface Props {
   /** % of same-role players who hit this square, when the sample is big enough */
   rate?: number | null
   onToggle?: () => void
+  /** Viewing someone else's card: no toggling, no hover lift */
+  readOnly?: boolean
 }
 
-export const BingoTile = memo(function BingoTile({ index, text, marked, free, centerNote, celebrate, stateLabel, rate, onToggle }: Props) {
+export const BingoTile = memo(function BingoTile({ index, text, marked, free, centerNote, celebrate, stateLabel, rate, onToggle, readOnly }: Props) {
   const { box, inner } = useFitText(text)
   const base =
     'relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-[clamp(6px,2cqw,12px)] p-[clamp(3px,1.1cqw,7px)] text-center font-medium leading-[1.25] transition-[background-color,color,transform,box-shadow] duration-200 [overflow-wrap:break-word] [hyphens:manual] text-[clamp(8.5px,2.45cqw,13px)]'
@@ -71,11 +73,12 @@ export const BingoTile = memo(function BingoTile({ index, text, marked, free, ce
       data-cell={index}
       aria-pressed={marked}
       aria-label={`${text} — ${stateLabel}${rate != null ? ` — ${rate}%` : ''}`}
-      onClick={onToggle}
+      onClick={readOnly ? undefined : onToggle}
+      disabled={readOnly}
       className={`${base} border ${
         marked
           ? 'anim-pop border-transparent text-white shadow-[inset_0_-3px_0_rgba(0,0,0,0.12)]'
-          : 'border-line bg-white text-ink shadow-[0_2px_6px_-3px_rgba(47,43,40,0.2)] hover:-translate-y-px hover:border-[var(--accent)]'
+          : `border-line bg-white text-ink shadow-[0_2px_6px_-3px_rgba(47,43,40,0.2)] ${readOnly ? 'cursor-default' : 'hover:-translate-y-px hover:border-[var(--accent)]'}`
       } ${celebrate ? 'anim-glow' : ''} ${rate != null ? 'pb-[3.4cqw]' : ''}`}
       style={marked ? { background: 'var(--accent)' } : undefined}
     >
