@@ -22,10 +22,16 @@ describe('storage', () => {
   })
 
   it('clears the board when it contains stale IDs', () => {
-    const board = generateBoard(poolFor('rd'))
+    const board = generateBoard(poolFor('fe'))
     board[0] = 'deleted-999'
-    const s = sanitizeState({ lang: 'en', role: 'rd', board, marked: [] }, poolFor)
-    expect(s).toEqual({ lang: 'en', role: 'rd', board: [], marked: [] })
+    const s = sanitizeState({ lang: 'en', role: 'fe', board, marked: [] }, poolFor)
+    expect(s).toEqual({ lang: 'en', role: 'fe', board: [], marked: [] })
+  })
+
+  it('sends a saved game for the retired RD role back to role selection', () => {
+    const board = generateBoard(poolFor('rd'))
+    const s = sanitizeState({ lang: 'zh-TW', role: 'rd', board, marked: [board[0]] }, poolFor)
+    expect(s).toEqual({ lang: 'zh-TW', role: null, board: [], marked: [] })
   })
 
   it('rejects prompts from a different role', () => {

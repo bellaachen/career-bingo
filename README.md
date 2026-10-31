@@ -2,8 +2,8 @@
 
 A bilingual (繁體中文 / English) 5×5 bingo game about surviving life in tech. Pick a role, get a card, mark what you've lived through, and export a share-ready PNG.
 
-- 8 roles, each with its own prompt deck (PM, RD, QA, UI, UX, Marketing, AM, Everyone in Tech)
-- 240 original prompts written natively in both languages
+- 9 roles, each with its own 40-prompt deck (PM, Frontend, Backend, QA, UI, UX, Marketing, AM, Everyone in Tech)
+- 360 original prompts written natively in both languages; Career Survival Level (6 levels × 9 roles, 54 bilingual titles)
 - 12-line bingo detection (rows, columns, diagonals); pre-marked center tile ☕ 「今天也有來上班」 / "Showed up anyway"
 - Progress saved locally; switching language never reshuffles your card
 - High-resolution PNG export, fully offline-capable

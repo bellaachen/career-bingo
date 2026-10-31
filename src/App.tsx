@@ -11,6 +11,8 @@ import { BingoBoard } from './components/BingoBoard'
 import { Results } from './components/Results'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { ShareDialog } from './components/ShareDialog'
+import { ResultView } from './components/ResultView'
+import { getSurvivalCopy, getSurvivalLevel } from './data/levels'
 import { Community } from './components/Community'
 import { useShare } from './hooks/useShare'
 import { ROLE_MIN_SHARES, type WallScope } from './lib/share'
@@ -18,7 +20,7 @@ import { apiEnabled } from './lib/api'
 import type { RoleId } from './types'
 
 type Screen = 'landing' | 'roles' | 'game' | 'community'
-type Pending = 'regenerate' | 'reset' | 'switch' | 'play' | null
+type Pending = 'regenerate' | 'reset' | 'switch' | 'play' | 'again' | null
 
 const WALL_HASH = '#/wall'
 
@@ -35,9 +37,9 @@ export default function App() {
   const share = useShare(state.role, state.board, state.marked, state.lang)
   const [pending, setPending] = useState<Pending>(null)
   // Each toast gets its own id so its dismiss timer is independent of later taps.
-  const [toast, setToast] = useState<{ id: number; text: string; count: number } | null>(null)
+  const [toast, setToast] = useState<{ id: number; text: string; badge: string } | null>(null)
+  const [resultOpen, setResultOpen] = useState(false)
   const [celebrate, setCelebrate] = useState<number[]>([])
-  const [exportState, setExportState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle')
   const boardRef = useRef<HTMLDivElement>(null)
 
   // Celebrate only lines that appear because of a user toggle on the same board.
@@ -46,16 +48,23 @@ export default function App() {
   useEffect(() => {
     const sameBoard = prevBoard.current === state.board
     const fresh = sameBoard ? newlyCompleted(prevLines.current, lines) : []
+    const prevCount = prevLines.current.length
     prevLines.current = lines
     prevBoard.current = state.board
     if (fresh.length === 0) return
     setCelebrate(fresh)
+    const before = getSurvivalLevel(prevCount)
+    const now = getSurvivalLevel(lines.length)
+    // A level-up outranks the plain bingo message (full card still gets its own line).
+    const levelUp = now > before && state.role
+      ? t.levelUp(getSurvivalCopy(state.role, now).title[state.lang])
+      : null
     setToast({
       id: Date.now(),
-      text: lines.length === 12 ? t.blackout : fresh.length === 1 ? t.bingoOne : t.bingoMany(fresh.length),
-      count: lines.length,
+      text: levelUp ?? (lines.length === 12 ? t.blackout : fresh.length === 1 ? t.bingoOne : t.bingoMany(fresh.length)),
+      badge: levelUp ? `LV${now}` : `${lines.length}`,
     })
-  }, [lines, state.board, t])
+  }, [lines, state.board, state.role, state.lang, t])
 
   // Dismiss timer lives with the toast itself. Previously it was cleared by the next tap
   // (any marks change re-ran the effect above), which left the toast on screen forever.
@@ -67,7 +76,7 @@ export default function App() {
 
   // Leaving the game clears any celebration so it can't follow you to another page.
   useEffect(() => {
-    if (screen !== 'game') { setToast(null); setCelebrate([]) }
+    if (screen !== 'game') { setToast(null); setCelebrate([]); setResultOpen(false) }
   }, [screen])
 
   useEffect(() => {
@@ -100,6 +109,7 @@ export default function App() {
   const runPending = () => {
     if (pending === 'regenerate') game.regenerate()
     if (pending === 'reset') game.resetMarks()
+    if (pending === 'again') { game.regenerate(); setResultOpen(false) }
     if (pending === 'switch') { game.leaveRole(); go('roles') }
     if (pending === 'play' && playRole) { game.startRole(playRole); go('game') }
     setPending(null)
@@ -111,29 +121,29 @@ export default function App() {
       if (action === 'regenerate') game.regenerate()
       if (action === 'switch') { game.leaveRole(); go('roles') }
       if (action === 'play' && playRole) { game.startRole(playRole); go('game') }
+      if (action === 'again') { game.regenerate(); setResultOpen(false) }
       return
     }
     setPending(action)
   }
 
-  const handleExport = async () => {
-    if (!boardRef.current || !state.role) return
-    setExportState('busy')
-    try {
-      await exportNodeAsPng(boardRef.current, exportFilename(state.role, state.lang))
-      setExportState('done')
-      window.setTimeout(() => setExportState('idle'), 2000)
-    } catch (err) {
-      console.error(err)
-      setExportState('error')
-    }
+  // Both downloads are triggered from the result sheet; errors surface there.
+  const downloadBoard = async () => {
+    if (!boardRef.current || !state.role) throw new Error('no board')
+    await exportNodeAsPng(boardRef.current, exportFilename(state.role, state.lang, 'card'))
   }
+  const downloadResult = async (node: HTMLElement) => {
+    if (!state.role) throw new Error('no role')
+    await exportNodeAsPng(node, exportFilename(state.role, state.lang, 'result'), { pixelRatio: 1 })
+  }
+  const level = getSurvivalLevel(lines.length)
 
   const dialogCopy = {
     regenerate: [t.confirmRegenerateTitle, t.confirmRegenerateBody],
     reset: [t.confirmResetTitle, t.confirmResetBody],
     switch: [t.confirmSwitchTitle, t.confirmSwitchBody],
     play: [t.confirmSwitchTitle, t.confirmSwitchBody],
+    again: [t.confirmPlayAgainTitle, t.confirmPlayAgainBody],
   } as const
 
   // From the wall: keep the current card if it's the same role, otherwise start that role.
@@ -191,11 +201,11 @@ export default function App() {
               stats={share.shared ? share.stats : null}
               note={boardNote}
               onToggle={game.toggle}
+              onOpenResult={() => setResultOpen(true)}
             />
             <Results
               t={t}
-              exportState={exportState}
-              onExport={handleExport}
+              onViewResult={() => setResultOpen(true)}
               onRegenerate={() => guarded('regenerate')}
               onReset={() => setPending('reset')}
               onSwitchRole={() => guarded('switch')}
@@ -231,12 +241,30 @@ export default function App() {
             style={{ background: 'var(--accent)' }}
           >
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/95 font-display text-lg font-extrabold tabular-nums" style={{ color: 'var(--accent)' }}>
-              {toast.count}
+              {toast.badge}
             </span>
             <span className="text-base font-bold sm:text-lg">{toast.text}</span>
           </div>
         )}
       </div>
+
+      {role && (
+        <ResultView
+          open={resultOpen && screen === 'game'}
+          lang={state.lang}
+          t={t}
+          role={role}
+          level={level}
+          copy={getSurvivalCopy(role.id, level)}
+          lines={lines.length}
+          count={game.count}
+          cells={game.cells}
+          onClose={() => setResultOpen(false)}
+          onPlayAgain={() => guarded('again')}
+          onDownloadResult={downloadResult}
+          onDownloadBoard={downloadBoard}
+        />
+      )}
 
       <ShareDialog open={shareOpen} t={t} busy={share.busy} onSubmit={share.share} onClose={() => setShareOpen(false)} />
 

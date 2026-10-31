@@ -5,6 +5,7 @@ import { CELL_COUNT, FREE_INDEX, LINES, promptIdAt } from '../lib/bingo'
 import { getPrompt } from '../data/questions'
 import { BingoTile } from './BingoTile'
 import { hitRate, type RoleStats } from '../lib/share'
+import { getSurvivalCopy, getSurvivalLevel } from '../data/levels'
 
 interface Props {
   lang: Lang
@@ -20,6 +21,8 @@ interface Props {
   /** One-line note under the grid (stats legend or cold-start message) */
   note?: string | null
   onToggle: (id: string) => void
+  /** Opens the result sheet (level chip). Omitted in contexts without one. */
+  onOpenResult?: () => void
 }
 
 /**
@@ -27,10 +30,12 @@ interface Props {
  * line count, language) lives inside this node.
  */
 export const BingoBoard = forwardRef<HTMLDivElement, Props>(function BingoBoard(
-  { lang, t, role, board, cells, lines, count, celebrateLines, stats, note, onToggle },
+  { lang, t, role, board, cells, lines, count, celebrateLines, stats, note, onToggle, onOpenResult },
   ref,
 ) {
   const glowing = new Set(celebrateLines.flatMap((l) => LINES[l]))
+  const level = getSurvivalLevel(lines.length)
+  const levelTitle = getSurvivalCopy(role.id, level).title[lang]
   return (
     <div
       ref={ref}
@@ -46,9 +51,18 @@ export const BingoBoard = forwardRef<HTMLDivElement, Props>(function BingoBoard(
             <span aria-hidden className="mr-[1.2cqw]">{role.emoji}</span>
             {role.name[lang]}
           </h2>
+          <button
+            type="button"
+            onClick={onOpenResult}
+            className="mt-[1.4cqw] inline-flex max-w-full items-center gap-[1cqw] rounded-full px-[2.2cqw] py-[0.7cqw] text-[clamp(10px,2.2cqw,13px)] font-bold text-white transition-transform hover:-translate-y-px"
+            style={{ background: role.accent }}
+          >
+            <span aria-hidden>🏆</span>
+            <span className="truncate">{t.levelChip(level, levelTitle)}</span>
+          </button>
         </div>
         <div className="flex shrink-0 gap-[1.6cqw] text-center">
-          <Stat label={t.lines} value={`${lines.length}`} accent={role.accent} />
+          <Stat label={t.lines} value={`${lines.length}/12`} accent={role.accent} />
           <Stat label={t.marked} value={`${count}/25`} accent={role.accent} />
         </div>
       </div>

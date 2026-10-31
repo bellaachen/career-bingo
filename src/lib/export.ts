@@ -4,11 +4,12 @@ import { toPng } from 'html-to-image'
  * Render a DOM node to a high-resolution PNG and trigger a download.
  * Everything is local (no external hosts), so it works offline once loaded.
  */
-export async function exportNodeAsPng(node: HTMLElement, filename: string): Promise<void> {
+export async function exportNodeAsPng(node: HTMLElement, filename: string, opts: { pixelRatio?: number } = {}): Promise<void> {
   // Make sure web fonts are ready so Chinese glyphs don't render as fallbacks.
   if (document.fonts?.ready) await document.fonts.ready
   const options = {
-    pixelRatio: Math.max(3, window.devicePixelRatio || 1),
+    // Board: 3x for crisp text. Result card is authored at its final 1080×1350 size, so 1x.
+    pixelRatio: opts.pixelRatio ?? Math.max(3, window.devicePixelRatio || 1),
     cacheBust: true,
   }
   // First pass warms the image/font cache in some browsers (notably Safari).
@@ -22,7 +23,7 @@ export async function exportNodeAsPng(node: HTMLElement, filename: string): Prom
   link.remove()
 }
 
-export function exportFilename(role: string, lang: string, date = new Date()): string {
+export function exportFilename(role: string, lang: string, kind: 'card' | 'result' = 'card', date = new Date()): string {
   const d = date.toISOString().slice(0, 10)
-  return `career-bingo_${role}_${lang}_${d}.png`
+  return `career-bingo_${kind}_${role}_${lang}_${d}.png`
 }

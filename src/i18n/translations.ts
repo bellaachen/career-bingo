@@ -83,6 +83,19 @@ const zh = {
   loadFailed: '載入失敗，請稍後再試。',
   retry: '重試',
   linesShort: (n: number) => `${n} 條線`,
+  // v3 — survival levels & result
+  viewResult: '查看我的結果',
+  resultHeading: '我的結果',
+  backToBingo: '返回賓果',
+  playAgain: '再玩一次',
+  downloadResult: '下載結果卡',
+  downloadBoard: '下載賓果卡',
+  resultTagline: '純屬娛樂，如有雷同，實屬巧合。',
+  levelUp: (title: string) => `升級！${title}`,
+  levelChip: (lv: number, title: string) => `LV${lv} · ${title}`,
+  levelOf: (lv: number) => `第 ${lv} 級，共 6 級`,
+  confirmPlayAgainTitle: '再玩一次？',
+  confirmPlayAgainBody: '會換一張新卡，目前的勾選會消失。',
 }
 
 const en: typeof zh = {
@@ -164,6 +177,18 @@ const en: typeof zh = {
   loadFailed: "Couldn't load. Please try again later.",
   retry: 'Retry',
   linesShort: (n: number) => `${n} ${n === 1 ? 'line' : 'lines'}`,
+  viewResult: 'View my result',
+  resultHeading: 'My result',
+  backToBingo: 'Back to bingo',
+  playAgain: 'Play again',
+  downloadResult: 'Download result card',
+  downloadBoard: 'Download bingo card',
+  resultTagline: 'Just for fun. Painfully relatable.',
+  levelUp: (title: string) => `Level up! ${title}`,
+  levelChip: (lv: number, title: string) => `LV${lv} · ${title}`,
+  levelOf: (lv: number) => `Level ${lv} of 6`,
+  confirmPlayAgainTitle: 'Play again?',
+  confirmPlayAgainBody: 'You will get a new card and lose your current marks.',
 }
 
 export type Strings = typeof zh

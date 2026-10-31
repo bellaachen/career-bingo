@@ -1,6 +1,7 @@
 export type Lang = 'zh-TW' | 'en'
 
-export type RoleId = 'pm' | 'rd' | 'qa' | 'ui' | 'ux' | 'marketing' | 'am' | 'all'
+/** 'rd' is retired (split into fe + be): it can't be chosen, but old shared cards still use it. */
+export type RoleId = 'pm' | 'fe' | 'be' | 'qa' | 'ui' | 'ux' | 'marketing' | 'am' | 'all' | 'rd'
 
 export interface LocalizedText {
   'zh-TW': string

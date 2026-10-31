@@ -11,13 +11,18 @@ function useFitText(text: string) {
     const fit = () => {
       let scale = 1
       span.style.fontSize = ''
+      // Don't break words while measuring: a long word (e.g. node_modules) should shrink first.
+      span.style.overflowWrap = 'normal'
       const base = parseFloat(getComputedStyle(span).fontSize)
       const cs = getComputedStyle(el)
       const maxH = el.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 2
-      while (scale > 0.62 && (span.scrollHeight > maxH + 1 || span.scrollWidth > span.clientWidth + 1)) {
+      const overflows = () => span.scrollHeight > maxH + 1 || span.scrollWidth > span.clientWidth + 1
+      while (scale > 0.62 && overflows()) {
         scale -= 0.06
         span.style.fontSize = `${base * scale}px`
       }
+      // Last resort at the smallest size: allow breaking inside a word rather than clipping it.
+      if (overflows()) span.style.overflowWrap = 'anywhere'
     }
     fit()
     const ro = new ResizeObserver(fit)
@@ -77,7 +82,7 @@ export const BingoTile = memo(function BingoTile({ index, text, marked, free, ce
       {marked && (
         <span aria-hidden className="absolute right-[6%] top-[3%] text-[clamp(7px,1.5cqw,10px)] leading-none opacity-70">✓</span>
       )}
-      <span ref={inner} className="block max-h-full">{text}</span>
+      <span ref={inner} className="block w-full min-w-0 max-h-full">{text}</span>
       {rate != null && (
         <span
           aria-hidden

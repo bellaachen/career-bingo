@@ -6,6 +6,7 @@ import { getPrompt } from '../data/questions'
 import { FREE_INDEX } from '../lib/bingo'
 import { ROLE_MIN_SHARES, topPrompts, type RoleStats, type ShareCard, type WallScope } from '../lib/share'
 import { getStats, getWall } from '../lib/api'
+import { getSurvivalCopy, getSurvivalLevel } from '../data/levels'
 
 interface Props {
   lang: Lang
@@ -181,6 +182,8 @@ function Figure({ label, value, accent }: { label: string; value: string; accent
 
 function MiniCard({ card, lang, t, showRole }: { card: ShareCard; lang: Lang; t: Strings; showRole: boolean }) {
   const role = getRole(card.role)
+  const level = getSurvivalLevel(card.lines)
+  const title = getSurvivalCopy(card.role, level).title[lang]
   return (
     <li className="rounded-2xl border border-white/80 p-3 shadow-[0_4px_14px_-10px_rgba(47,43,40,0.4)]" style={{ background: role.tint }}>
       <div className="grid grid-cols-5 gap-[3px]" aria-hidden>
@@ -198,8 +201,9 @@ function MiniCard({ card, lang, t, showRole }: { card: ShareCard; lang: Lang; t:
         </p>
       )}
       <p className={`${showRole ? 'mt-0.5' : 'mt-2.5'} text-sm font-semibold leading-snug [overflow-wrap:anywhere]`}>{card.nickname ?? t.anonymous}</p>
+      <p className="mt-1 text-[11px] font-bold leading-snug" style={{ color: role.accent }}>LV{level} {title}</p>
       <p className="mt-1 text-[11px] text-ink-soft">
-        <span className="font-bold tabular-nums" style={{ color: role.accent }}>{t.linesShort(card.lines)}</span>
+        <span className="tabular-nums">{t.linesShort(card.lines)}</span>
         {' · '}
         <time dateTime={new Date(card.createdAt).toISOString()}>{relativeTime(card.createdAt, lang)}</time>
       </p>
