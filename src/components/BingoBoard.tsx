@@ -4,6 +4,7 @@ import type { Strings } from '../i18n/translations'
 import { CELL_COUNT, FREE_INDEX, LINES, promptIdAt } from '../lib/bingo'
 import { getPrompt } from '../data/questions'
 import { BingoTile } from './BingoTile'
+import { LineOverlay } from './LineOverlay'
 
 interface Props {
   lang: Lang
@@ -51,7 +52,7 @@ export const BingoBoard = forwardRef<HTMLDivElement, Props>(function BingoBoard(
       <div
         role="group"
         aria-label={t.boardLabel(role.name[lang])}
-        className="grid grid-cols-5 gap-[clamp(4px,1.3vw,10px)]"
+        className="relative grid grid-cols-5 gap-[clamp(4px,1.3vw,10px)]"
       >
         {Array.from({ length: CELL_COUNT }, (_, i) => {
           if (i === FREE_INDEX) {
@@ -71,6 +72,7 @@ export const BingoBoard = forwardRef<HTMLDivElement, Props>(function BingoBoard(
             />
           )
         })}
+        <LineOverlay lines={lines} fresh={celebrateLines} />
       </div>
 
       <p className="mt-[clamp(8px,2.5vw,16px)] flex items-start justify-between gap-3 text-[clamp(9px,2.3vw,12px)] text-ink-soft">

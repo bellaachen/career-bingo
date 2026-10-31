@@ -46,8 +46,13 @@ body {
   50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 35%, transparent); }
 }
 @keyframes toast-in {
-  from { opacity: 0; transform: translate(-50%, 12px); }
-  to { opacity: 1; transform: translate(-50%, 0); }
+  0% { opacity: 0; transform: translateY(-24px) scale(0.9); }
+  60% { opacity: 1; transform: translateY(4px) scale(1.03); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
 }
 @keyframes float {
   0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
@@ -55,7 +60,8 @@ body {
 }
 .anim-pop { animation: pop 220ms ease-out; }
 .anim-glow { animation: glow 900ms ease-in-out 2; }
-.anim-toast { animation: toast-in 260ms ease-out both; }
+.anim-toast { animation: toast-in 420ms cubic-bezier(.2,.8,.3,1.2) both; }
+.anim-draw { stroke-dasharray: 1; animation: draw 520ms cubic-bezier(.6,0,.3,1) 120ms both; }
 .anim-float { animation: float 4s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {

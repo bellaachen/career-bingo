@@ -141,10 +141,17 @@ export default function App() {
 
       <footer className="py-6 text-center text-xs text-ink-soft">Bella Chen {BUILD_DATE}</footer>
 
-      <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-6 z-50">
+      <div aria-live="polite" className="pointer-events-none fixed inset-x-0 top-3 z-50 flex justify-center px-4 sm:top-5">
         {toast && (
-          <div className="anim-toast absolute left-1/2 rounded-full bg-ink px-5 py-3 text-sm font-semibold whitespace-nowrap text-white shadow-lg">
-            {toast}
+          <div
+            key={toast + lines.length}
+            className="anim-toast flex items-center gap-3 rounded-full py-2.5 pl-2.5 pr-6 text-white shadow-[0_12px_32px_-10px_rgba(47,43,40,0.55)] ring-4 ring-white/70"
+            style={{ background: 'var(--accent)' }}
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/95 font-display text-lg font-extrabold tabular-nums" style={{ color: 'var(--accent)' }}>
+              {lines.length}
+            </span>
+            <span className="text-base font-bold sm:text-lg">{toast}</span>
           </div>
         )}
       </div>

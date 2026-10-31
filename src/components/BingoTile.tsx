@@ -14,8 +14,7 @@ function useFitText(text: string) {
       const base = parseFloat(getComputedStyle(span).fontSize)
       const cs = getComputedStyle(el)
       const maxH = el.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 2
-      const maxW = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
-      while (scale > 0.62 && (span.scrollHeight > maxH || span.scrollWidth > maxW)) {
+      while (scale > 0.62 && (span.scrollHeight > maxH + 1 || span.scrollWidth > span.clientWidth + 1)) {
         scale -= 0.06
         span.style.fontSize = `${base * scale}px`
       }
