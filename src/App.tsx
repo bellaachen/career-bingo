@@ -109,7 +109,7 @@ export default function App() {
         )}
 
         {screen === 'game' && role && (
-          <section className="mx-auto w-full max-w-[640px] px-3 pb-10 pt-4 sm:px-6 sm:pt-8">
+          <section className="game-col px-4 pb-8 pt-3 sm:pt-5">
             <BingoBoard
               ref={boardRef}
               lang={state.lang}

@@ -4,7 +4,7 @@ A bilingual (繁體中文 / English) 5×5 bingo game about surviving life in tec
 
 - 8 roles, each with its own prompt deck (PM, RD, QA, UI, UX, Marketing, AM, Everyone in Tech)
 - 240 original prompts written natively in both languages
-- 12-line bingo detection (rows, columns, diagonals), FREE center
+- 12-line bingo detection (rows, columns, diagonals); pre-marked center tile ☕ 「今天也有來上班」 / "Showed up anyway"
 - Progress saved locally; switching language never reshuffles your card
 - High-resolution PNG export, fully offline-capable
 - No backend, no accounts, no tracking
@@ -62,6 +62,7 @@ src/
     RolePicker.tsx         8 role cards
     BingoBoard.tsx         The exportable card (title, role, stats, grid)
     BingoTile.tsx          One tile; auto-shrinks text to fit
+  (sizes in the game column use cqw so board + buttons scale together and fit the window height)
     Results.tsx            Export / new card / clear / switch role
     ConfirmDialog.tsx      Native <dialog> for destructive actions
   App.tsx                  Screens, celebration toasts, confirmation flow
@@ -92,7 +93,7 @@ The brief targets **50 prompts per role (400 total)**. v1 ships **30 per role (2
 ## QA checklist
 
 Automated (`npm test`, 32 tests):
-- [x] 25 cells, FREE center at index 12, 24 unique prompts from the chosen role
+- [x] 25 cells, pre-marked center at index 12, 24 unique prompts from the chosen role
 - [x] Row/column/diagonal each = 1 line; intersecting lines counted separately; blackout = 12
 - [x] Unmarking removes the line
 - [x] Regenerate produces a different board

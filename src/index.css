@@ -68,4 +68,17 @@ body {
   }
 }
 
+/*
+ * Game column: every size inside uses cqw (1% of this column's width), so the
+ * board, stats and buttons scale together. Width is also capped by viewport
+ * height so the action buttons stay visible on short desktop windows.
+ * Measured: bottom of buttons ≈ 165px + 1.26 × column content width (+32px padding).
+ */
+.game-col {
+  container-type: inline-size;
+  width: 100%;
+  margin-inline: auto;
+  max-width: min(600px, max(320px, calc((100dvh - 190px) / 1.27 + 32px)));
+}
+
 dialog::backdrop { background: rgb(47 43 40 / 0.28); backdrop-filter: blur(2px); }

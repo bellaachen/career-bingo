@@ -32,26 +32,27 @@ interface Props {
   text: string
   marked: boolean
   free?: boolean
-  freeHint?: string
+  centerNote?: string
   celebrate: boolean
   stateLabel: string
   onToggle?: () => void
 }
 
-export const BingoTile = memo(function BingoTile({ index, text, marked, free, freeHint, celebrate, stateLabel, onToggle }: Props) {
+export const BingoTile = memo(function BingoTile({ index, text, marked, free, centerNote, celebrate, stateLabel, onToggle }: Props) {
   const { box, inner } = useFitText(text)
   const base =
-    'relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-[clamp(6px,1.8vw,14px)] p-[clamp(3px,1vw,8px)] text-center font-medium leading-[1.25] transition-[background-color,color,transform,box-shadow] duration-200 [overflow-wrap:break-word] [hyphens:manual] text-[clamp(8.5px,2.45vw,14px)]'
+    'relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-[clamp(6px,2cqw,12px)] p-[clamp(3px,1.1cqw,7px)] text-center font-medium leading-[1.25] transition-[background-color,color,transform,box-shadow] duration-200 [overflow-wrap:break-word] [hyphens:manual] text-[clamp(8.5px,2.45cqw,13px)]'
 
   if (free) {
     return (
       <div
         data-cell={index}
         className={`${base} flex-col bg-ink text-white ${celebrate ? 'anim-glow' : ''}`}
-        aria-label={`${text}, ${freeHint}`}
+        role="img"
+        aria-label={`${text.replace('\n', '')} (${centerNote})`}
       >
-        <span className="font-display text-[clamp(11px,3.4vw,20px)] font-extrabold tracking-wider">{text}</span>
-        <span className="mt-0.5 text-[clamp(7px,1.9vw,11px)] opacity-75">{freeHint}</span>
+        <span aria-hidden className="text-[clamp(14px,4.4cqw,26px)] leading-none">☕</span>
+        <span className="mt-[0.8cqw] whitespace-pre-line font-bold leading-tight">{text}</span>
       </div>
     )
   }
@@ -72,7 +73,7 @@ export const BingoTile = memo(function BingoTile({ index, text, marked, free, fr
       style={marked ? { background: 'var(--accent)' } : undefined}
     >
       {marked && (
-        <span aria-hidden className="absolute right-[6%] top-[3%] text-[clamp(7px,1.7vw,11px)] leading-none opacity-70">✓</span>
+        <span aria-hidden className="absolute right-[6%] top-[3%] text-[clamp(7px,1.5cqw,10px)] leading-none opacity-70">✓</span>
       )}
       <span ref={inner} className="block max-h-full">{text}</span>
     </button>
