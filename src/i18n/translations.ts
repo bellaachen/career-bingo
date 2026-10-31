@@ -45,6 +45,7 @@ const zh = {
   // Phase 2 — shared results
   shareCta: '分享到大家的卡',
   sharedCta: '已分享 · 看大家的卡',
+  sharedShort: '看大家的卡',
   shareTitle: '分享你的賓果卡',
   shareBody: '你的卡會匿名出現在「大家的卡」，分享後馬上看到其他人是否也中了同一格。',
   nicknameLabel: '暱稱（選填）',
@@ -143,6 +144,7 @@ const en: typeof zh = {
   footerNote: 'For fun only. Any resemblance to your actual job is purely coincidental.',
   shareCta: 'Share to the wall',
   sharedCta: 'Shared · See the wall',
+  sharedShort: 'See the wall',
   shareTitle: 'Share your card',
   shareBody: "Your card goes up anonymously on the wall, and you'll instantly see how many others hit the same squares.",
   nicknameLabel: 'Nickname (optional)',

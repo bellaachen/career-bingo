@@ -127,11 +127,7 @@ export default function App() {
     setPending(action)
   }
 
-  // Both downloads are triggered from the result sheet; errors surface there.
-  const downloadBoard = async () => {
-    if (!boardRef.current || !state.role) throw new Error('no board')
-    await exportNodeAsPng(boardRef.current, exportFilename(state.role, state.lang, 'card'))
-  }
+  // The result card download is triggered from the result sheet; errors surface there.
   const downloadResult = async (node: HTMLElement) => {
     if (!state.role) throw new Error('no role')
     await exportNodeAsPng(node, exportFilename(state.role, state.lang, 'result'), { pixelRatio: 1 })
@@ -210,7 +206,6 @@ export default function App() {
               onReset={() => setPending('reset')}
               onSwitchRole={() => guarded('switch')}
               canReset={game.hasProgress}
-              share={share.enabled ? { shared: Boolean(share.shared), onShare: () => setShareOpen(true), onOpenWall: () => openWall(state.role ?? 'everyone') } : undefined}
             />
           </section>
         )}
@@ -262,7 +257,7 @@ export default function App() {
           onClose={() => setResultOpen(false)}
           onPlayAgain={() => guarded('again')}
           onDownloadResult={downloadResult}
-          onDownloadBoard={downloadBoard}
+          share={share.enabled ? { shared: Boolean(share.shared), onShare: () => setShareOpen(true), onOpenWall: () => openWall(state.role ?? 'everyone') } : undefined}
         />
       )}
 
