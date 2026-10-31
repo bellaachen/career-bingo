@@ -247,6 +247,7 @@ export default function App() {
           lines={lines.length}
           count={game.count}
           cells={game.cells}
+          board={state.board}
           onClose={() => setResultOpen(false)}
           onPlayAgain={() => guarded('again')}
           onDownloadResult={downloadResult}

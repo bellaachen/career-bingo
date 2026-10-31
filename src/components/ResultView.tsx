@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Lang, RoleMeta } from '../types'
 import type { Strings } from '../i18n/translations'
 import type { Level, SurvivalCopy } from '../data/levels'
-import { RESULT_HEIGHT, RESULT_WIDTH, ResultCard } from './ResultCard'
+import { RESULT_WIDTH, ResultCard } from './ResultCard'
 
 type ExportState = 'idle' | 'busy' | 'done' | 'error'
 
@@ -16,6 +16,7 @@ interface Props {
   lines: number
   count: number
   cells: boolean[]
+  board: string[]
   onClose: () => void
   onPlayAgain: () => void
   /** Export handlers live in App: the board node is owned there. */
@@ -34,17 +35,23 @@ export function ResultView(p: Props) {
   const frameRef = useRef<HTMLDivElement>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(0.35)
+  const [cardHeight, setCardHeight] = useState(1600)
   const [result, setResult] = useState<ExportState>('idle')
 
-  // Scale the fixed-size card to the frame width.
+  // Scale the fixed-width card to the frame; its height follows its content.
   useLayoutEffect(() => {
     if (!open) return
-    const el = frameRef.current
-    if (!el) return
-    const fit = () => setScale(el.clientWidth / RESULT_WIDTH)
+    const frame = frameRef.current
+    const card = cardRef.current
+    if (!frame || !card) return
+    const fit = () => {
+      setScale(frame.clientWidth / RESULT_WIDTH)
+      setCardHeight(card.offsetHeight)
+    }
     fit()
     const ro = new ResizeObserver(fit)
-    ro.observe(el)
+    ro.observe(frame)
+    ro.observe(card)
     return () => ro.disconnect()
   }, [open])
 
@@ -87,7 +94,7 @@ export function ResultView(p: Props) {
       aria-labelledby="result-heading"
       className="fixed inset-0 z-40 overflow-y-auto bg-paper/95 backdrop-blur-sm outline-none"
     >
-      <div className="mx-auto flex w-full max-w-[560px] flex-col px-4 pb-8 pt-4 sm:pt-6">
+      <div className="mx-auto flex w-full max-w-[560px] flex-col px-4 pb-6 pt-4 sm:pt-6">
         <div className="flex items-center justify-between">
           <h1 id="result-heading" className="font-display text-xl font-extrabold sm:text-2xl">{t.resultHeading}</h1>
           <button type="button" onClick={onClose} className="rounded-full px-3 py-1.5 text-sm font-medium text-ink-soft hover:text-ink">
@@ -95,18 +102,16 @@ export function ResultView(p: Props) {
           </button>
         </div>
 
-        {/* Card frame: width capped by viewport height so buttons stay visible on desktop */}
-        <div
-          ref={frameRef}
-          className="mx-auto mt-4 w-full"
-          style={{ maxWidth: `min(100%, max(320px, calc((100dvh - 250px) * ${RESULT_WIDTH / RESULT_HEIGHT})))`, height: RESULT_HEIGHT * scale }}
-        >
-          <div style={{ width: RESULT_WIDTH, height: RESULT_HEIGHT, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+        <div ref={frameRef} className="mx-auto mt-4 w-full max-w-[520px]" style={{ height: cardHeight * scale }}>
+          <div style={{ width: RESULT_WIDTH, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
             <ResultCard ref={cardRef} {...p} />
           </div>
         </div>
+      </div>
 
-        <div className={`mx-auto mt-5 grid w-full gap-2.5 ${p.share ? 'grid-cols-2' : 'grid-cols-1'}`} style={{ maxWidth: `min(100%, max(320px, calc((100dvh - 250px) * ${RESULT_WIDTH / RESULT_HEIGHT})))` }}>
+      {/* Actions stay on screen while the (tall) card scrolls */}
+      <div className="sticky bottom-0 border-t border-line/70 bg-paper/90 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md">
+        <div className={`mx-auto grid w-full max-w-[520px] gap-2.5 ${p.share ? 'grid-cols-2' : 'grid-cols-1'}`}>
           <button
             type="button"
             onClick={() => cardRef.current && run(setResult, () => p.onDownloadResult(cardRef.current!))}
@@ -128,13 +133,9 @@ export function ResultView(p: Props) {
             </button>
           )}
         </div>
-        <div className="mx-auto mt-2.5 grid w-full grid-cols-2 gap-2.5" style={{ maxWidth: `min(100%, max(320px, calc((100dvh - 250px) * ${RESULT_WIDTH / RESULT_HEIGHT})))` }}>
-          <button type="button" onClick={onClose} className="rounded-full border border-line bg-white/80 px-4 py-2.5 text-sm font-medium">
-            {t.backToBingo}
-          </button>
-          <button type="button" onClick={p.onPlayAgain} className="rounded-full border border-line bg-white/80 px-4 py-2.5 text-sm font-medium">
-            ↻ {t.playAgain}
-          </button>
+        <div className="mx-auto mt-2 flex w-full max-w-[520px] justify-center gap-6 text-sm font-medium text-ink-soft">
+          <button type="button" onClick={onClose} className="py-1 hover:text-ink">← {t.backToBingo}</button>
+          <button type="button" onClick={p.onPlayAgain} className="py-1 hover:text-ink">↻ {t.playAgain}</button>
         </div>
         {result === 'error' && (
           <p role="alert" className="mt-3 text-center text-sm text-[#B4473A]">{t.exportFailed}</p>
