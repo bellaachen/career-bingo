@@ -3,7 +3,7 @@ import { useGame } from './hooks/useGame'
 import { STRINGS } from './i18n/translations'
 import { getRole } from './data/roles'
 import { newlyCompleted } from './lib/bingo'
-import { exportFilename, exportNodeAsPng } from './lib/export'
+import { exportFilename } from './lib/export'
 import { Header } from './components/Header'
 import { Landing } from './components/Landing'
 import { RolePicker } from './components/RolePicker'
@@ -120,11 +120,6 @@ export default function App() {
     setPending(action)
   }
 
-  // The result card download is triggered from the result sheet; errors surface there.
-  const downloadResult = async (node: HTMLElement) => {
-    if (!state.role) throw new Error('no role')
-    await exportNodeAsPng(node, exportFilename(state.role, state.lang, 'result'), { pixelRatio: 1 })
-  }
   const level = getSurvivalLevel(lines.length)
 
   const dialogCopy = {
@@ -250,7 +245,7 @@ export default function App() {
           board={state.board}
           onClose={() => setResultOpen(false)}
           onPlayAgain={() => guarded('again')}
-          onDownloadResult={downloadResult}
+          filename={exportFilename(role.id, state.lang, 'result')}
           share={share.enabled ? { shared: Boolean(share.shared), onShare: () => setShareOpen(true), onOpenWall: () => openWall(state.role ?? 'everyone') } : undefined}
         />
       )}

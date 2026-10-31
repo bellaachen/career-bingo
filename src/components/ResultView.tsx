@@ -3,6 +3,7 @@ import type { Lang, RoleMeta } from '../types'
 import type { Strings } from '../i18n/translations'
 import type { Level, SurvivalCopy } from '../data/levels'
 import { RESULT_WIDTH, ResultCard } from './ResultCard'
+import { downloadBlob, isTouchDevice, renderNodeToBlob, shareImage } from '../lib/export'
 
 type ExportState = 'idle' | 'busy' | 'done' | 'error'
 
@@ -19,8 +20,8 @@ interface Props {
   board: string[]
   onClose: () => void
   onPlayAgain: () => void
-  /** Export handlers live in App: the board node is owned there. */
-  onDownloadResult: (node: HTMLElement) => Promise<void>
+  /** File name for the saved image */
+  filename: string
   /** Sharing is hidden when the API isn't configured. */
   share?: { shared: boolean; onShare: () => void; onOpenWall: () => void }
 }
@@ -37,6 +38,27 @@ export function ResultView(p: Props) {
   const [scale, setScale] = useState(0.35)
   const [cardHeight, setCardHeight] = useState(1600)
   const [result, setResult] = useState<ExportState>('idle')
+  const [preview, setPreview] = useState<string | null>(null)
+  const touch = isTouchDevice()
+
+  // Pre-render the PNG whenever the card's content changes, so a tap on "Save image"
+  // can open the share sheet right away (browsers drop the tap if we render first).
+  const contentKey = JSON.stringify([p.lang, p.level, p.lines, p.count, p.board, p.cells])
+  const blobRef = useRef<{ key: string; blob: Blob } | null>(null)
+  useEffect(() => {
+    if (!open) return
+    let alive = true
+    const id = window.setTimeout(() => {
+      if (!cardRef.current) return
+      renderNodeToBlob(cardRef.current, { pixelRatio: 1 })
+        .then((blob) => { if (alive) blobRef.current = { key: contentKey, blob } })
+        .catch(() => undefined)
+    }, 350)
+    return () => { alive = false; window.clearTimeout(id) }
+  }, [open, contentKey])
+
+  // Free the preview image URL when it closes.
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview) }, [preview])
 
   // Scale the fixed-width card to the frame; its height follows its content.
   useLayoutEffect(() => {
@@ -58,7 +80,11 @@ export function ResultView(p: Props) {
   // Esc closes; focus moves into the sheet; page behind doesn't scroll.
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !document.querySelector('dialog[open]') && onClose()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || document.querySelector('dialog[open]')) return
+      if (document.getElementById('save-preview')) setPreview(null)
+      else onClose()
+    }
     window.addEventListener('keydown', onKey)
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -84,6 +110,27 @@ export function ResultView(p: Props) {
   }
 
   const label = (s: ExportState, base: string) => (s === 'busy' ? t.exporting : s === 'done' ? t.exported : base)
+
+  const save = async () => {
+    const card = cardRef.current
+    if (!card) return
+    const cached = blobRef.current?.key === contentKey ? blobRef.current.blob : null
+    if (!touch) {
+      // Desktop: a regular file download.
+      return run(setResult, async () => downloadBlob(cached ?? (await renderNodeToBlob(card, { pixelRatio: 1 })), p.filename))
+    }
+    // Phone: system share sheet → 儲存影像 / Photos. If it can't open, show the image to long-press.
+    setResult('busy')
+    try {
+      const blob = cached ?? (await renderNodeToBlob(card, { pixelRatio: 1 }))
+      const outcome = await shareImage(blob, p.filename, 'Career Bingo')
+      if (outcome === 'unsupported') setPreview(URL.createObjectURL(blob))
+      setResult('idle')
+    } catch (err) {
+      console.error(err)
+      setResult('error')
+    }
+  }
 
   return (
     <div
@@ -114,13 +161,13 @@ export function ResultView(p: Props) {
         <div className={`mx-auto grid w-full max-w-[520px] gap-2.5 ${p.share ? 'grid-cols-2' : 'grid-cols-1'}`}>
           <button
             type="button"
-            onClick={() => cardRef.current && run(setResult, () => p.onDownloadResult(cardRef.current!))}
+            onClick={save}
             disabled={result === 'busy'}
             aria-busy={result === 'busy'}
             className="whitespace-nowrap rounded-full px-3 py-3 text-sm font-semibold text-white shadow-[0_6px_20px_-8px_rgba(47,43,40,0.5)] disabled:opacity-70 sm:text-base"
             style={{ background: p.role.accent }}
           >
-            ↓ {label(result, t.downloadResult)}
+            ↓ {label(result, touch ? t.saveImage : t.downloadResult)}
           </button>
           {p.share && (
             <button
@@ -140,7 +187,15 @@ export function ResultView(p: Props) {
         {result === 'error' && (
           <p role="alert" className="mt-3 text-center text-sm text-[#B4473A]">{t.exportFailed}</p>
         )}
+        {touch && <p className="mx-auto mt-1 max-w-[520px] text-center text-[11px] text-ink-soft">{t.saveHint}</p>}
       </div>
+      {preview && (
+        <div id="save-preview" role="dialog" aria-modal="true" aria-label={t.saveImage} className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-ink/85 p-4" onClick={() => setPreview(null)}>
+          <p className="max-w-sm text-center text-sm font-semibold text-white">{t.longPressHint}</p>
+          <img src={preview} alt={p.copy.title[p.lang]} className="max-h-[78dvh] max-w-full rounded-2xl shadow-2xl" onClick={(e) => e.stopPropagation()} />
+          <button type="button" onClick={() => setPreview(null)} className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-ink">{t.close}</button>
+        </div>
+      )}
     </div>
   )
 }
