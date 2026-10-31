@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+@theme {
+  --color-peach: #F6E6DE;
+  --color-mint: #DCEDE7;
+  --color-lavender: #E6E1F4;
+  --color-cream: #FFF5DF;
+  --color-powder: #DFEAF6;
+  --color-paper: #F8F7F4;
+  --color-ink: #2F2B28;
+  --color-ink-soft: #6F6862;
+  --color-line: #E7E3DC;
+  --font-sans: "Noto Sans TC", "PingFang TC", "Hiragino Sans", "Microsoft JhengHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: ui-rounded, "Hiragino Maru Gothic ProN", "SF Pro Rounded", "Noto Sans TC", "PingFang TC", system-ui, sans-serif;
+}
+
+:root {
+  --accent: #6B6459;
+  --tint: #EEECE6;
+  color-scheme: light;
+}
+
+html { -webkit-text-size-adjust: 100%; }
+body {
+  @apply bg-paper text-ink font-sans antialiased;
+  background-image:
+    radial-gradient(circle at 12% 8%, #F6E6DE 0, transparent 32%),
+    radial-gradient(circle at 92% 18%, #E6E1F4 0, transparent 30%),
+    radial-gradient(circle at 70% 96%, #DCEDE7 0, transparent 34%);
+  background-attachment: fixed;
+  min-height: 100dvh;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); }
+  50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 35%, transparent); }
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50% { transform: translateY(-6px) rotate(var(--r, 0deg)); }
+}
+.anim-pop { animation: pop 220ms ease-out; }
+.anim-glow { animation: glow 900ms ease-in-out 2; }
+.anim-toast { animation: toast-in 260ms ease-out both; }
+.anim-float { animation: float 4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+dialog::backdrop { background: rgb(47 43 40 / 0.28); backdrop-filter: blur(2px); }
