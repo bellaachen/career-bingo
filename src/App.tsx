@@ -10,9 +10,17 @@ import { RolePicker } from './components/RolePicker'
 import { BingoBoard } from './components/BingoBoard'
 import { Results } from './components/Results'
 import { ConfirmDialog } from './components/ConfirmDialog'
+import { ShareDialog } from './components/ShareDialog'
+import { Community } from './components/Community'
+import { useShare } from './hooks/useShare'
+import { ROLE_MIN_SHARES } from './lib/share'
+import { apiEnabled } from './lib/api'
+import type { RoleId } from './types'
 
-type Screen = 'landing' | 'roles' | 'game'
-type Pending = 'regenerate' | 'reset' | 'switch' | null
+type Screen = 'landing' | 'roles' | 'game' | 'community'
+type Pending = 'regenerate' | 'reset' | 'switch' | 'play' | null
+
+const WALL_HASH = '#/wall'
 
 declare const __BUILD_DATE__: string
 const BUILD_DATE = __BUILD_DATE__
@@ -21,7 +29,12 @@ export default function App() {
   const game = useGame()
   const { state, lines } = game
   const t = STRINGS[state.lang]
-  const [screen, setScreen] = useState<Screen>(state.role ? 'game' : 'landing')
+  const [screen, setScreen] = useState<Screen>(() =>
+    apiEnabled && window.location.hash === WALL_HASH ? 'community' : state.role ? 'game' : 'landing',
+  )
+  const [playRole, setPlayRole] = useState<RoleId | null>(null)
+  const [shareOpen, setShareOpen] = useState(false)
+  const share = useShare(state.role, state.board, state.marked, state.lang)
   const [pending, setPending] = useState<Pending>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [celebrate, setCelebrate] = useState<number[]>([])
@@ -47,13 +60,33 @@ export default function App() {
     document.documentElement.lang = state.lang
   }, [state.lang])
 
+  // The wall has its own URL (#/wall) so it can be shared and the back button works.
+  useEffect(() => {
+    const onHash = () => {
+      if (window.location.hash === WALL_HASH && apiEnabled) setScreen('community')
+      else setScreen((s) => (s === 'community' ? (state.role ? 'game' : 'landing') : s))
+    }
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [state.role])
+  const openWall = () => {
+    if (window.location.hash !== WALL_HASH) window.location.hash = WALL_HASH
+    setScreen('community')
+    window.scrollTo({ top: 0 })
+  }
+  const go = (next: Screen) => {
+    if (window.location.hash === WALL_HASH) history.pushState(null, '', window.location.pathname + window.location.search)
+    setScreen(next)
+  }
+
   const role = state.role ? getRole(state.role) : null
   const accentStyle = role ? ({ '--accent': role.accent, '--tint': role.tint } as React.CSSProperties) : undefined
 
   const runPending = () => {
     if (pending === 'regenerate') game.regenerate()
     if (pending === 'reset') game.resetMarks()
-    if (pending === 'switch') { game.leaveRole(); setScreen('roles') }
+    if (pending === 'switch') { game.leaveRole(); go('roles') }
+    if (pending === 'play' && playRole) { game.startRole(playRole); go('game') }
     setPending(null)
   }
 
@@ -61,7 +94,8 @@ export default function App() {
   const guarded = (action: Exclude<Pending, null>) => {
     if (!game.hasProgress) {
       if (action === 'regenerate') game.regenerate()
-      if (action === 'switch') { game.leaveRole(); setScreen('roles') }
+      if (action === 'switch') { game.leaveRole(); go('roles') }
+      if (action === 'play' && playRole) { game.startRole(playRole); go('game') }
       return
     }
     setPending(action)
@@ -84,19 +118,38 @@ export default function App() {
     regenerate: [t.confirmRegenerateTitle, t.confirmRegenerateBody],
     reset: [t.confirmResetTitle, t.confirmResetBody],
     switch: [t.confirmSwitchTitle, t.confirmSwitchBody],
+    play: [t.confirmSwitchTitle, t.confirmSwitchBody],
   } as const
+
+  // From the wall: keep the current card if it's the same role, otherwise start that role.
+  const playFromWall = (r: RoleId) => {
+    if (r === state.role && state.board.length) return go('game')
+    setPlayRole(r)
+    if (!game.hasProgress) { game.startRole(r); go('game') }
+    else setPending('play')
+  }
+
+  // Line under the board once this card is shared: stats legend, or the cold-start message.
+  const roleName = role?.name[state.lang] ?? ''
+  const boardNote = !share.shared || !share.stats
+    ? null
+    : share.stats.shares >= ROLE_MIN_SHARES
+      ? t.rateLegend(roleName, share.stats.shares)
+      : share.shared.position > 0
+        ? t.youAreNth(roleName, share.shared.position)
+        : t.collecting(roleName, share.stats.shares)
 
   return (
     <div className="flex min-h-dvh flex-col" style={accentStyle}>
-      <Header lang={state.lang} t={t} onLang={game.setLang} onHome={screen === 'landing' ? undefined : () => setScreen('landing')} />
+      <Header lang={state.lang} t={t} onLang={game.setLang} onHome={screen === 'landing' ? undefined : () => go('landing')} onWall={apiEnabled && screen !== 'community' ? openWall : undefined} />
 
       <main className="flex-1">
         {screen === 'landing' && (
           <>
-            <Landing lang={state.lang} t={t} onStart={() => setScreen(state.role ? 'game' : 'roles')} />
+            <Landing lang={state.lang} t={t} onStart={() => go(state.role ? 'game' : 'roles')} onWall={apiEnabled ? openWall : undefined} />
             {state.role && (
               <p className="mx-auto -mt-6 w-full max-w-5xl px-4 text-sm text-ink-soft sm:px-6">
-                <button type="button" className="underline underline-offset-4 hover:text-ink" onClick={() => { game.leaveRole(); setScreen('roles') }}>
+                <button type="button" className="underline underline-offset-4 hover:text-ink" onClick={() => { game.leaveRole(); go('roles') }}>
                   {t.pickRole}
                 </button>
               </p>
@@ -105,7 +158,7 @@ export default function App() {
         )}
 
         {screen === 'roles' && (
-          <RolePicker lang={state.lang} t={t} onPick={(r) => { game.startRole(r); setScreen('game') }} />
+          <RolePicker lang={state.lang} t={t} onPick={(r) => { game.startRole(r); go('game') }} />
         )}
 
         {screen === 'game' && role && (
@@ -120,6 +173,8 @@ export default function App() {
               lines={lines}
               count={game.count}
               celebrateLines={celebrate}
+              stats={share.shared ? share.stats : null}
+              note={boardNote}
               onToggle={game.toggle}
             />
             <Results
@@ -130,8 +185,19 @@ export default function App() {
               onReset={() => setPending('reset')}
               onSwitchRole={() => guarded('switch')}
               canReset={game.hasProgress}
+              share={share.enabled ? { shared: Boolean(share.shared), onShare: () => setShareOpen(true), onOpenWall: openWall } : undefined}
             />
           </section>
+        )}
+
+        {screen === 'community' && apiEnabled && (
+          <Community
+            lang={state.lang}
+            t={t}
+            initialRole={state.role ?? 'pm'}
+            onPlay={playFromWall}
+            onBack={state.role ? () => go('game') : undefined}
+          />
         )}
       </main>
 
@@ -155,6 +221,8 @@ export default function App() {
           </div>
         )}
       </div>
+
+      <ShareDialog open={shareOpen} t={t} busy={share.busy} onSubmit={share.share} onClose={() => setShareOpen(false)} />
 
       <ConfirmDialog
         open={pending !== null}

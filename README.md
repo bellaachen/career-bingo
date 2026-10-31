@@ -111,7 +111,33 @@ Manual (verified in Chrome at 375px and 1280px):
 - [ ] Spot-check export on iOS Safari and Android Chrome before sharing widely
 - [ ] Reduced motion: enable OS setting and confirm animations are suppressed
 
-## Future scope (not in v1)
+## Phase 2: shared results (「大家的卡」)
+
+Players can share a finished card anonymously and immediately see what share of players in the same role hit each square. Everything runs on free tiers with no manual moderation.
+
+- **API**: a Cloudflare Worker (`worker/src/index.ts`) with a D1 database (`worker/migrations`). It shares the question bank and bingo logic with the frontend (`src/lib/share.ts`, `src/lib/nickname.ts`), so validation and line counting are identical on both sides — and the server always recomputes lines rather than trusting the client.
+- **Nicknames**: optional, max 14 width units (CJK/emoji = 2). Links, `@`, long numbers and a server-only blocklist are rejected; 3 reports from different players hide a nickname automatically.
+- **Abuse limits**: one share per board per player, 10 shares/day per anonymous player, 30/day per IP (hashed, never stored raw).
+- **Cold start**: percentages appear only after 20 shares for a role and 10 appearances for a square.
+- **Stats** are kept as running aggregates (`role_stats`, `prompt_stats`), so reading them touches ~30 rows, not every share.
+- **Graceful fallback**: if `VITE_API_BASE` isn't set or the API is down, sharing hides itself and the v1 game works as before.
+
+### Run it locally
+
+```bash
+npm run api:migrate      # create the local D1 tables (first time)
+npm run api:dev          # Worker on http://localhost:8787
+npm run dev:with-api     # site on http://localhost:5173 talking to it
+node scripts/api-e2e.mjs # black-box API test (local worker only)
+```
+
+### Deploy
+
+Add two repository secrets: `CLOUDFLARE_API_TOKEN` (custom token with *Workers Scripts: Edit* and *D1: Edit*) and `CLOUDFLARE_ACCOUNT_ID`. On push to `main`, the workflow finds or creates the `career-bingo` D1 database, applies migrations, deploys the Worker, then builds the site with the Worker's URL. Without the secrets, the site still deploys with sharing hidden.
+
+To allow another site origin, edit `ALLOWED_ORIGINS` in `wrangler.toml`.
+
+## Future scope (not yet built)
 
 User-submitted prompts, moderation, rankings, shared challenge links, cloud sync, optional Supabase backend.
 

@@ -6,9 +6,10 @@ interface Props {
   t: Strings
   onLang: (lang: Lang) => void
   onHome?: () => void
+  onWall?: () => void
 }
 
-export function Header({ lang, t, onLang, onHome }: Props) {
+export function Header({ lang, t, onLang, onHome, onWall }: Props) {
   return (
     <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 pt-4 sm:px-6 sm:pt-6">
       <button
@@ -19,9 +20,16 @@ export function Header({ lang, t, onLang, onHome }: Props) {
         aria-label={onHome ? t.home : t.appName}
       >
         <Logo />
-        <span className="font-display text-base font-bold tracking-tight sm:text-lg">{t.appName}</span>
+        <span className="whitespace-nowrap font-display text-base font-bold tracking-tight sm:text-lg">{t.appName}</span>
       </button>
-      <div role="group" aria-label={t.langLabel} className="flex rounded-full border border-line bg-white/70 p-1 text-sm shadow-sm">
+      <div className="flex items-center gap-2 sm:gap-3">
+      {onWall && (
+        <button type="button" onClick={onWall} aria-label={t.communityTitle} className="whitespace-nowrap rounded-full border border-line bg-white/70 px-2.5 py-1.5 text-sm font-medium text-ink-soft hover:text-ink sm:border-transparent sm:bg-transparent">
+          <span aria-hidden className="sm:hidden">👀</span>
+          <span className="hidden sm:inline">{t.communityTitle}</span>
+        </button>
+      )}
+      <div role="group" aria-label={t.langLabel} className="flex shrink-0 rounded-full border border-line bg-white/70 p-1 text-sm shadow-sm">
         {(['zh-TW', 'en'] as const).map((l) => (
           <button
             key={l}
@@ -35,6 +43,7 @@ export function Header({ lang, t, onLang, onHome }: Props) {
             {l === 'zh-TW' ? '中文' : 'EN'}
           </button>
         ))}
+      </div>
       </div>
     </header>
   )

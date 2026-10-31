@@ -6,6 +6,7 @@ interface Props {
   lang: Lang
   t: Strings
   onStart: () => void
+  onWall?: () => void
 }
 
 // A few decorative floating tiles pulled from the real bank
@@ -13,7 +14,7 @@ const SHOWCASE = ['pm-002', 'rd-001', 'qa-004', 'ui-001', 'all-002', 'ux-028']
 const TINTS = ['#F6E6DE', '#DFEAF6', '#DCEDE7', '#E6E1F4', '#FFF5DF', '#F9E3E8']
 const ROT = [-4, 3, -2, 5, -3, 2]
 
-export function Landing({ lang, t, onStart }: Props) {
+export function Landing({ lang, t, onStart, onWall }: Props) {
   const samples = SHOWCASE.map((id) => QUESTIONS.find((q) => q.id === id)).filter(Boolean)
   return (
     <section className="mx-auto grid w-full max-w-5xl items-center gap-10 px-4 pb-10 pt-8 sm:px-6 md:grid-cols-[1.1fr_1fr] md:pt-16">
@@ -34,6 +35,15 @@ export function Landing({ lang, t, onStart }: Props) {
         >
           {t.start} <span aria-hidden>→</span>
         </button>
+        {onWall && (
+          <button
+            type="button"
+            onClick={onWall}
+            className="ml-3 mt-8 inline-flex items-center gap-2 rounded-full border border-line bg-white/80 px-6 py-3.5 text-base font-semibold text-ink transition-colors hover:border-ink"
+          >
+            <span aria-hidden>👀</span> {t.communityEntry}
+          </button>
+        )}
       </div>
 
       <div aria-hidden="true" className="grid grid-cols-3 gap-3 sm:gap-4">

@@ -4,6 +4,7 @@ import type { Strings } from '../i18n/translations'
 import { CELL_COUNT, FREE_INDEX, LINES, promptIdAt } from '../lib/bingo'
 import { getPrompt } from '../data/questions'
 import { BingoTile } from './BingoTile'
+import { hitRate, type RoleStats } from '../lib/share'
 
 interface Props {
   lang: Lang
@@ -14,6 +15,10 @@ interface Props {
   lines: number[]
   count: number
   celebrateLines: number[]
+  /** Role stats after sharing; drives % badges on tiles */
+  stats?: RoleStats | null
+  /** One-line note under the grid (stats legend or cold-start message) */
+  note?: string | null
   onToggle: (id: string) => void
 }
 
@@ -22,7 +27,7 @@ interface Props {
  * line count, language) lives inside this node.
  */
 export const BingoBoard = forwardRef<HTMLDivElement, Props>(function BingoBoard(
-  { lang, t, role, board, cells, lines, count, celebrateLines, onToggle },
+  { lang, t, role, board, cells, lines, count, celebrateLines, stats, note, onToggle },
   ref,
 ) {
   const glowing = new Set(celebrateLines.flatMap((l) => LINES[l]))
@@ -67,6 +72,7 @@ export const BingoBoard = forwardRef<HTMLDivElement, Props>(function BingoBoard(
               marked={cells[i]}
               celebrate={glowing.has(i)}
               stateLabel={cells[i] ? t.tileMarked : t.tileUnmarked}
+              rate={hitRate(stats ?? null, id)}
               onToggle={() => onToggle(id)}
             />
           )
@@ -75,7 +81,7 @@ export const BingoBoard = forwardRef<HTMLDivElement, Props>(function BingoBoard(
 
       <p className="mt-[3.5cqw] flex items-start justify-between gap-[3cqw] text-[clamp(9px,1.9cqw,11.5px)] text-ink-soft">
         <span className="shrink-0">{lang === 'zh-TW' ? '中文版' : 'English'}</span>
-        <span className="text-right">{t.footerNote}</span>
+        <span className="text-right">{note ?? t.footerNote}</span>
       </p>
     </div>
   )
